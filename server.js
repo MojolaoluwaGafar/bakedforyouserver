@@ -14,6 +14,9 @@ app.use(express.json());
 //routes  
 const userRoutes= require("./routes/userAuthRoutes")
 app.use("/api/user", userRoutes)
+const productRoutes = require("./routes/productRoutes");
+app.use("/api/products", productRoutes);
+
  
 //error route
 app.use((req, res) => {

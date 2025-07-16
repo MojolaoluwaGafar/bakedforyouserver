@@ -1,6 +1,6 @@
 const bcrypt =require("bcryptjs");
 const jwt =require("jsonwebtoken");
-const User = require("../models/User");
+const User = require("../models/user");
 
 const generateToken = ({ userId, email }) => {
     const token = jwt.sign({ userId, email }, process.env.JWT_SECRET, {
@@ -10,36 +10,46 @@ const generateToken = ({ userId, email }) => {
   };
 
   
-exports.signup= async (req, res) => {
-    const { fullName, email, password } = req.body;
-    
-    try {
-      console.log("Received signup request", req.body);
+  exports.signup = async (req, res) => {
+    const { fullName, email, password, role = "user" } = req.body;
 
-        const existingUser = await User.findOne({ email });
-        if (existingUser)
-          return res.status(400).json({ message: "Email already registered" });
-    
-        const hashedPassword = await bcrypt.hash(password, 10);
-    
-        const user = new User({
-          name: fullName,
-          email,
-          password: hashedPassword,
-        });
-    
-        await user.save();
-    
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-          expiresIn: "7d",
-        });
-        console.log("Signup successful for:", email);
-        res.status(201).json({ token, user: { id: user._id, name, email } });  
+    try {
+      const existingUser = await User.findOne({ email });
+      if (existingUser)
+        return res.status(400).json({ message: "Email already registered" });
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const assignedRole = role === "admin" ? "user" : role;
+
+      const user = new User({
+        fullName,
+        email,
+        password: hashedPassword,
+        role: assignedRole,
+      });
+
+      await user.save();
+
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+        expiresIn: "7d",
+      });
+
+      res.status(201).json({
+        token,
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+        },
+      });
     } catch (error) {
       console.error("Signup error:", error);
-        res.status(500).json({ message: "Signup failed", error: error.message });
-  } 
-}
+      res.status(500).json({ message: "Signup failed", error: error.message });
+    }
+  };
+  
 
 exports.signin = async (req, res) => {
     const { email, password } = req.body;
@@ -61,3 +71,4 @@ exports.signin = async (req, res) => {
       res.status(500).json({ message: "Login failed", error: err });
     }
   };
+
