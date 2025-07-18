@@ -22,6 +22,20 @@ const userSchema = new mongoose.Schema({
     enum: ["user", "baker", "admin"],
     default: "user",
   },
+  verified: {
+    type: Boolean,
+    default: false,
+  },
+  verificationToken: String,
+  verificationTokenExpires: Date,
+  isApproved: {
+    type: Boolean,
+    default: false,
+  },
+  isDisabled: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

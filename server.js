@@ -13,9 +13,13 @@ app.use(express.json());
 
 //routes  
 const userRoutes= require("./routes/userAuthRoutes")
-app.use("/api/user", userRoutes)
+app.use("/api/user", userRoutes);
+const bakerAuthRoutes = require('./routes/bakerAuthRoutes');
+app.use('/api/auth/baker', bakerAuthRoutes);
 const productRoutes = require("./routes/productRoutes");
 app.use("/api/products", productRoutes);
+const adminRoutes = require("./routes/adminRoutes");
+app.use("/api/admin", adminRoutes);
 
  
 //error route
