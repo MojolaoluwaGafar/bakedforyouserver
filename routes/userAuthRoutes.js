@@ -7,8 +7,6 @@ const { verifyEmail, resendVerificationLink } = require("../controllers/userAuth
 const { approveBaker, approveUser } = require("../controllers/adminController");
 const { isAdmin } = require("../middleware/authMiddleware");
 
-
-
 router.post("/signup", signup);
 router.post("/signin", signin);
 router.get("/verify-email/:email/:token", verifyEmail);

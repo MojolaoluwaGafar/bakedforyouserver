@@ -13,9 +13,9 @@ router.post("/create-admin", isSuperAdmin, adminController.createAdmin);
 router.get("/users", adminController.getAllUsers);
 router.get("/bakers", adminController.getAllBakers);
 router.get("/bakers/pending", adminController.getPendingBakers);
-router.patch("/baker/:id/approve", adminController.approveBaker);
-router.patch("/user/:id/disable", adminController.disableUser);
-router.patch("/user/:id/enable", adminController.enableUser);
+router.patch("/user/:userId/disable", adminController.disableUser);
+router.patch("/user/:userId/enable", adminController.enableUser);
+router.patch("/user/:userId/approve", adminController.approveUser);
 
 // Products & Orders
 router.get("/orders", adminController.getAllOrders);

@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+
 const {
   createProduct,
   getProducts,
@@ -10,10 +11,10 @@ const {
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 const { uploadMultiple } = require("../middleware/upload");
 
-// GET all products — public
+// Public route — fetch all products
 router.get("/", getProducts);
 
-// CREATE product — accepts multiple images
+// Private — Create product (with multiple images)
 router.post(
   "/upload",
   protect,
@@ -22,7 +23,7 @@ router.post(
   createProduct
 );
 
-// UPDATE product — optional image
+// Private — Update product (with optional new images)
 router.put(
   "/:id",
   protect,
@@ -31,7 +32,7 @@ router.put(
   updateProduct
 );
 
-// DELETE
+// Private — Delete product
 router.delete("/:id", protect, authorizeRoles("baker"), deleteProduct);
 
 module.exports = router;

@@ -1,22 +1,30 @@
-const jwt = require('jsonwebtoken');
+const verifyToken = require('../utils/verifyToken');
 const Baker = require('../models/baker');
 
-exports.verifyBaker = async (req, res) => {
+exports.verifyBaker = async (req, res, next) => {
   const { token } = req.params;
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyToken(token);
     const baker = await Baker.findById(decoded.id);
 
     if (!baker) {
       return res.status(404).json({ message: 'Baker not found' });
     }
 
+    if (baker.verified) {
+      return res.redirect(`${process.env.CLIENT_URL}/login?verified=already`);
+    }
+
     baker.verified = true;
     await baker.save();
 
     return res.redirect(`${process.env.CLIENT_URL}/login?verified=true`);
-  } catch (error) {
-    return res.status(400).json({ message: 'Invalid or expired token' });
+  } catch (err) {
+    next({
+      status: 400,
+      message: err.message,
+      stack: err.stack,
+    });
   }
 };

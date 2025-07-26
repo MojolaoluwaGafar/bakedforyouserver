@@ -4,4 +4,5 @@ const { verifyBaker } = require('../controllers/bakerAuthController');
 
 router.get('/verify/:token', verifyBaker);
 
+
 module.exports = router;

@@ -2,177 +2,202 @@ const User = require("../models/user");
 const Product = require("../models/product");
 const Order = require("../models/order");
 const { sendEmail, getApprovalEmail } = require("../utils/sendEmail");
+const asyncHandler = require("express-async-handler");
+const CustomError = require("../utils/customError");
 
-// Create a new admin user (accessible by super admin only)
-exports.createAdmin = async (req, res) => {
-  try {
-    const { fullName, email, password } = req.body;
-
-    // Validate input
-    if (!fullName || !email || !password) {
-      return res.status(400).json({ error: "All fields are required" });
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({ error: "Email already in use" });
-    }
-
-    // Create the admin user
-    const newAdmin = new User({
-      fullName,
-      email,
-      password,
-      role: "admin",
-      verified: true,
-      isApproved: true,
-    });
-
-    await newAdmin.save();
-    res.status(201).json({ message: "Admin account created", admin: newAdmin });
-  } catch (error) {
-    console.error("Create Admin Error:", error.message);
-    res.status(500).json({ error: "Failed to create admin" });
-  }
+// Reusable: sanitize user object
+const sanitizeUser = (user) => {
+  const { password, verificationToken, ...rest } = user.toObject();
+  return rest;
 };
 
-
-// Get all users (excluding admins)
-exports.getAllUsers = async (req, res) => {
-  try {
-    const users = await User.find({ role: { $ne: "admin" } });
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch users" });
+// Create admin
+exports.createAdmin = asyncHandler(async (req, res) => {
+  const { fullName, email, password } = req.body;
+  if (!fullName || !email || !password) {
+    throw new CustomError("All fields are required", 400);
   }
-};
 
-// Get all bakers
-exports.getAllBakers = async (req, res) => {
-  try {
-    const bakers = await User.find({ role: "baker" }).sort({ isApproved: 1 });
-    res.json(bakers);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch bakers" });
-  }
-};
-// Get all pending bakers
-exports.getPendingBakers = async (req, res) => {
-  try {
-    const pendingBakers = await User.find({ role: "baker", isApproved: false });
-    res.json(pendingBakers);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch pending bakers" });
-  }
-};
+  const existing = await User.findOne({ email });
+  if (existing) throw new CustomError("Email already in use", 409);
 
+  const newAdmin = await User.create({
+    fullName,
+    email,
+    password,
+    role: "admin",
+    verified: true,
+    isApproved: true,
+  });
 
-// Approve a baker
-exports.approveBaker = async (req, res) => {
-  try {
-    const baker = await User.findByIdAndUpdate(
-      req.params.id,
-      { isApproved: true },
-      { new: true }
-    );
-
-    if (!baker) return res.status(404).json({ error: "Baker not found" });
-
-    const emailContent = getApprovalEmail(baker.fullName);
-    await sendEmail({
-      to: baker.email,
-      subject: emailContent.subject,
-      html: emailContent.html,
-    });
-
-    res.json({ message: "Baker approved and notified", baker });
-    console.log(`Approval email sent to ${baker.email}`);
-  } catch (error) {
-    console.error("Failed to approve and send email:", error.message);
-    res.status(500).json({ error: "Failed to approve baker" });
-  }
-};
-exports.approveUser = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    user.isApproved = true;
-    await user.save();
-    res.status(200).json({ message: "User approved successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
-
-// Disable a user or baker
-exports.disableUser = async (req, res) => {
-  try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { isDisabled: true },
-      { new: true }
-    );
-    if (!user) return res.status(404).json({ error: "User not found" });
-    res.json({ message: "User disabled", user });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to disable user" });
-  }
-};
-// Enable user or baker
-exports.enableUser = async (req, res) => {
-  try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { isDisabled: false },
-      { new: true }
-    );
-    if (!user) return res.status(404).json({ error: "User not found" });
-    res.json({ message: "User enabled", user });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to enable user" });
-  }
-};
-
-
-// Get all orders
-exports.getAllOrders = async (req, res) => {
-  try {
-    const orders = await Order.find().populate("user baker");
-    res.json(orders);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch orders" });
-  }
-};
-
-// Get all products
-exports.getAllProducts = async (req, res) => {
-  try {
-    const products = await Product.find().populate("baker");
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch products" });
-  }
-};
-
-// Get system metrics
-exports.getMetrics = async (req, res) => {
-  try {
-    const totalUsers = await User.countDocuments({ role: "user" });
-    const totalBakers = await User.countDocuments({ role: "baker" });
-    const totalProducts = await Product.countDocuments();
-    const totalOrders = await Order.countDocuments();
-    const oneMonthAgo = new Date();
-oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
-const newUsers = await User.countDocuments({
-  role: "user",
-  createdAt: { $gte: oneMonthAgo }
+  res.status(201).json({
+    success: true,
+    message: "Admin account created",
+    data: sanitizeUser(newAdmin),
+  });
 });
 
-    res.json({ totalUsers, totalBakers, totalProducts, totalOrders, newUsers });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch metrics" });
-  }
-};
+// Get all non-admin users
+exports.getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.find({ role: { $ne: "admin" } });
+  res.json({
+    success: true,
+    message: "Users fetched",
+    data: users.map(sanitizeUser),
+  });
+});
+
+// Get all bakers
+exports.getAllBakers = asyncHandler(async (req, res) => {
+  const bakers = await User.find({ role: "baker" }).sort({ isApproved: 1 });
+  res.json({
+    success: true,
+    message: bakers.length ? "Bakers fetched" : "No bakers found",
+    data: bakers.map(sanitizeUser),
+  });
+});
+
+// Get pending bakers
+exports.getPendingBakers = asyncHandler(async (req, res) => {
+  const pending = await User.find({ role: "baker", isApproved: false });
+  res.json({
+    success: true,
+    message: "Pending bakers fetched",
+    data: pending.map(sanitizeUser),
+  });
+});
+
+// Approve a baker
+exports.approveBaker = asyncHandler(async (req, res) => {
+  const baker = await User.findById(req.params.id);
+  if (!baker) throw new CustomError("Baker not found", 404);
+  if (baker.isApproved) throw new CustomError("Baker already approved", 409);
+
+  baker.isApproved = true;
+  await baker.save();
+
+  const emailContent = getApprovalEmail(baker.fullName);
+  await sendEmail({
+    to: baker.email,
+    subject: emailContent.subject,
+    html: emailContent.html,
+  });
+
+  console.log(`Approval email sent to ${baker.email}`);
+  res.json({
+    success: true,
+    message: "Baker approved and notified",
+    data: sanitizeUser(baker),
+  });
+});
+
+// Approve a user
+exports.approveUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.userId);
+  if (!user) throw new CustomError("User not found", 404);
+  if (user.isApproved) throw new CustomError("User already approved", 409);
+
+  user.isApproved = true;
+  await user.save();
+
+  res.json({
+    success: true,
+    message: "User approved",
+    data: sanitizeUser(user),
+  });
+});
+
+// Disable user
+exports.disableUser = asyncHandler(async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.params.userId,
+    { isDisabled: true },
+    { new: true }
+  );
+  if (!user) throw new CustomError("User not found", 404);
+
+  res.json({
+    success: true,
+    message: "User disabled",
+    data: sanitizeUser(user),
+  });
+});
+
+// Enable user
+exports.enableUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.userId);
+  if (!user) throw new CustomError("User not found", 404);
+  if (!user.isDisabled) throw new CustomError("User already enabled", 409);
+
+  user.isDisabled = false;
+  await user.save();
+
+  res.json({
+    success: true,
+    message: "User enabled",
+    data: sanitizeUser(user),
+  });
+});
+
+// Get all orders
+exports.getAllOrders = asyncHandler(async (req, res) => {
+  const { status, baker } = req.query;
+  const filters = {};
+  if (status) filters.status = status;
+  if (baker) filters.baker = baker;
+
+  const orders = await Order.find(filters)
+    .populate("user baker")
+    .sort({ createdAt: -1 });
+
+  res.json({
+    success: true,
+    message: "Orders fetched",
+    data: orders,
+  });
+});
+
+// Get all products
+exports.getAllProducts = asyncHandler(async (req, res) => {
+  const products = await Product.find()
+    .populate("baker")
+    .sort({ createdAt: -1 });
+
+  res.json({
+    success: true,
+    message: "Products fetched",
+    data: products,
+  });
+});
+
+// Get metrics
+exports.getMetrics = asyncHandler(async (req, res) => {
+  const [totalUsers, totalBakers, totalProducts, totalOrders] =
+    await Promise.all([
+      User.countDocuments({ role: "user" }),
+      User.countDocuments({ role: "baker" }),
+      Product.countDocuments(),
+      Order.countDocuments(),
+    ]);
+
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+  const [newUsers, newBakers] = await Promise.all([
+    User.countDocuments({ role: "user", createdAt: { $gte: oneMonthAgo } }),
+    User.countDocuments({ role: "baker", createdAt: { $gte: oneMonthAgo } }),
+  ]);
+
+  res.json({
+    success: true,
+    message: "Metrics fetched",
+    data: {
+      totalUsers,
+      totalBakers,
+      totalProducts,
+      totalOrders,
+      newUsers,
+      newBakers,
+    },
+  });
+});
