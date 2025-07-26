@@ -28,6 +28,7 @@ const userSchema = new mongoose.Schema({
   },
   verificationToken: String,
   verificationTokenExpires: Date,
+  lastVerificationEmailSentAt: Date,
   isApproved: {
     type: Boolean,
     default: false,

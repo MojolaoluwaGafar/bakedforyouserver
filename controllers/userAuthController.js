@@ -100,9 +100,8 @@ exports.signin = async (req, res) => {
         fullName: user.fullName,
         email,
         role: user.role,
-        verified: user.verified,
+        verified: user.verified && user.isApproved,
         isApproved: user.isApproved,
-        isDisabled: user.isDisabled,
       },
     });
   } catch (err) {
@@ -165,31 +164,39 @@ exports.resendVerificationLink = async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
+    if (!user.email) {
+  console.error("No user email found");
+  return res.status(400).json({ success: false, message: "User email not found." });
+}
+
 
     if (user.verified) {
       return res.status(400).json({ success: false, message: "User already verified" });
     }
+    if (user.lastVerificationEmailSentAt && Date.now() - user.lastVerificationEmailSentAt < 5 * 60 * 1000) {
+  return res.status(429).json({ message: "Please wait a few minutes before requesting again." });
+}
 
     const verificationToken = crypto.randomBytes(32).toString("hex");
     user.verificationToken = verificationToken;
     user.verificationTokenExpires = Date.now() + 60 * 60 * 1000; // 1 hour
-
     await user.save();
 
     const verificationLink = `${process.env.CLIENT_URL}/verify-email/${user.email}/${verificationToken}`;
+console.log("Sending email to:", user.email); // add this before sendEmail()
 
-    await sendEmail(
-      user.email,
-      "Resend Email Verification",
-      `<p>Hello ${user.fullName},</p>
-       <p>Please verify your email by clicking the link below:</p>
-       <a href="${verificationLink}">${verificationLink}</a>
-       <p>This link will expire in 1 hour.</p>`
-    );
+    await sendEmail({
+      to: user.email,
+      subject: "Verify Your Email",
+      html: `<h3>Hello ${user.fullName}</h3>
+             <p>Click the link below to verify your email:</p>
+             <a href="${verificationLink}">${verificationLink}</a>
+             <p>This link expires in 1 hour.</p>`
+    } );
 
     res.status(200).json({ success: true, message: "Verification link sent" });
   } catch (error) {
-    console.error("Resend link error:", error.message);
+    console.error("Full error:", error);
     res.status(500).json({ success: false, message: "Server error. Try again later." });
   }
 };

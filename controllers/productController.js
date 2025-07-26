@@ -2,16 +2,30 @@ const Product = require("../models/product");
 
 exports.createProduct = async (req, res) => {
   try {
+    const { name, description, price } = req.body;
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "At least one product image is required" });
+    }
+
+    const imageUrls = req.files.map(file => file.path);
+
     const product = new Product({
       bakerId: req.user._id,
-      ...req.body,
+      productName: name,
+      productDescription: description,
+      productPrice: price,
+      productImageUrls: imageUrls,
     });
+
     await product.save();
     res.status(201).json(product);
   } catch (err) {
-    res.status(400).json({ message: "Failed to create product", error: err });
+    res.status(400).json({ message: "Failed to create product", error: err.message });
   }
 };
+
+
 
 exports.getProducts = async (req, res) => {
   const products = await Product.find().populate("bakerId", "name email");
