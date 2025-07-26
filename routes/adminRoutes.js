@@ -7,7 +7,7 @@ const { protect, authorizeRoles, isSuperAdmin } = require("../middleware/authMid
 router.use(protect, authorizeRoles("admin"));
 
 // Admin creation (super admin only)
-router.post("/create-admin", isSuperAdmin, adminController.createAdmin);
+router.post("/create-admin",protect, isSuperAdmin, adminController.createAdmin);
 
 // Users & Bakers
 router.get("/users", adminController.getAllUsers);
