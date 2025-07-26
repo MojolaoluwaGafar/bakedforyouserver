@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const User = require("../models/user");
 const { sendEmail } = require("../utils/sendEmail");
-const verifyToken = require("../utils/verifyToken");
+const verifyToken = require("../middleware/verifyToken");
 
 // Generate JWT token
 const generateToken = ({ userId, email, role }) =>

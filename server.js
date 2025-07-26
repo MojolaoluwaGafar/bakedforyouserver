@@ -3,7 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const errorHandler = require('./utils/errorHandler');
-
+const orderRoutes = require("./routes/orderRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 // Create app
 const app = express();
 const PORT = process.env.PORT || 5050;
@@ -17,7 +18,8 @@ app.use("/api/user", require("./routes/userAuthRoutes"));
 app.use("/api/auth/baker", require("./routes/bakerAuthRoutes"));
 app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
-
+app.use("/api/orders", orderRoutes);
+app.use("/api/payments", paymentRoutes);
 // ✅ ERROR HANDLER MIDDLEWARE COMES LAST — BEFORE 404
 app.use(errorHandler);
 

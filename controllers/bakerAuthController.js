@@ -1,4 +1,4 @@
-const verifyToken = require('../utils/verifyToken');
+const verifyToken = require('../middleware/verifyToken');
 const Baker = require('../models/baker');
 
 exports.verifyBaker = async (req, res, next) => {
