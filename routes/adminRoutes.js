@@ -3,11 +3,11 @@ const router = express.Router();
 const adminController = require("../controllers/adminController");
 const { protect, authorizeRoles, isSuperAdmin } = require("../middleware/authMiddleware");
 
+// Admin creation (super admin only)
+router.post("/create-admin",protect, isSuperAdmin, adminController.createAdmin);
 // Secure all admin routes
 router.use(protect, authorizeRoles("admin"));
 
-// Admin creation (super admin only)
-router.post("/create-admin",protect, isSuperAdmin, adminController.createAdmin);
 
 // Users & Bakers
 router.get("/users", adminController.getAllUsers);

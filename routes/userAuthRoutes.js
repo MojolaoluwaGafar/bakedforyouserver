@@ -13,7 +13,7 @@ router.get("/verify-email/:email/:token", verifyEmail);
 router.post("/resend-verification", resendVerificationLink);
 router.get("/admin/bakers", protect, authorizeRoles("admin"), getAllBakers);
 
-router.put("/approve-baker/:id", protect, authorizeRoles("admin"), approveBaker);
+router.put("/approve-baker/:id", protect, authorizeRoles("admin", "superadmin"), approveBaker);
 
 router.put('/approve/:userId', protect, isAdmin, approveUser);
 
